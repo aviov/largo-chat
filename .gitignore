@@ -100,3 +100,4 @@ coverage/
 # Lambda credentials for Google Cloud TTS API sk
 **/largo-chat-0ba8c5caed66.json
 largo-chat-0ba8c5caed66.json
+frontend/src/amplify-config.js
