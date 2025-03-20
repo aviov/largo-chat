@@ -1,0 +1,12 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "sts:AssumeRole"
+      ],
+      "Resource": "arn:aws:iam::615022891451:role/ChatbotStack-EksClusterRole30336171-FgApg5WwV9gN"
+    }
+  ]
+}

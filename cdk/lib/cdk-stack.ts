@@ -100,21 +100,25 @@ export class ChatbotStack extends cdk.Stack {
       allowAllOutbound: true
     });
 
-    // Create IAM role for EKS cluster
-    const eksClusterRole = new iam.Role(this, 'EksClusterRole', {
-      assumedBy: new iam.ServicePrincipal('eks.amazonaws.com'),
+    // Create IAM role for EKS cluster administration
+    const eksAdminRole = new iam.Role(this, 'EksAdminRole', {
+      assumedBy: new iam.CompositePrincipal(
+        new iam.ArnPrincipal('arn:aws:iam::615022891451:user/admin'),
+        new iam.ServicePrincipal('eks.amazonaws.com')
+      ),
       managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonEKSClusterPolicy')
-      ]
+        iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonEKSClusterPolicy'),
+        iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonEKSServicePolicy')
+      ],
     });
 
-    // Create an EKS cluster with minimal configuration to avoid kubectl layer issues
+    // Create the EKS cluster with the CfnCluster approach which doesn't require kubectlLayer
     const eksClusterName = 'milvus-cluster';
     
-    // Create the EKS cluster resource directly instead of using the high-level construct
+    // Create the EKS cluster resource directly to avoid the kubectlLayer requirement
     const eksCluster = new cdk.aws_eks.CfnCluster(this, 'EksCfnCluster', {
       name: eksClusterName,
-      roleArn: eksClusterRole.roleArn,
+      roleArn: eksAdminRole.roleArn,
       version: '1.27',
       resourcesVpcConfig: {
         subnetIds: vpc.privateSubnets.map(subnet => subnet.subnetId),
@@ -152,22 +156,23 @@ export class ChatbotStack extends cdk.Stack {
     );
 
     // Create EKS managed node group
-    const nodeGroup = new cdk.aws_eks.CfnNodegroup(this, 'EksNodeGroup', {
+    const nodegroup = new eks.CfnNodegroup(this, 'EksNodeGroup', {
       clusterName: eksClusterName,
-      nodegroupName: 'milvus-nodes',
       nodeRole: nodeGroupRole.roleArn,
       subnets: vpc.privateSubnets.map(subnet => subnet.subnetId),
-      instanceTypes: ['m5.large', 'm5.xlarge'],
-      diskSize: 50,
+      instanceTypes: ['t3.medium'],
+      diskSize: 20,
       scalingConfig: {
         desiredSize: 2,
         minSize: 1,
         maxSize: 3
-      }
+      },
+      nodegroupName: 'milvus-nodes',
+      capacityType: 'ON_DEMAND'
     });
-
-    // Add dependency to ensure proper creation order
-    nodeGroup.addDependsOn(eksCluster);
+    
+    // Add explicit dependency to ensure the cluster is created before the nodegroup
+    nodegroup.addDependsOn(eksCluster);
 
     // Output the EKS cluster name for reference
     new cdk.CfnOutput(this, 'EksClusterName', {

@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aws-auth
+  namespace: kube-system
+data:
+  mapRoles: |
+    - rolearn: arn:aws:iam::615022891451:role/ChatbotStack-EksNodeGroupRoleEBD66BF6-knLJzRsCb3PS
+      username: system:node:{{EC2PrivateDNSName}}
+      groups:
+        - system:bootstrappers
+        - system:nodes
+    - rolearn: arn:aws:iam::615022891451:role/eks-admin-role
+      username: admin
+      groups:
+        - system:masters
+  mapUsers: |
+    - userarn: arn:aws:iam::615022891451:user/admin
+      username: admin
+      groups:
+        - system:masters
+    - userarn: arn:aws:iam::615022891451:root
+      username: root
+      groups:
+        - system:masters
